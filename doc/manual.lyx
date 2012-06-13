@@ -1,0 +1,718 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass scrartcl
+\begin_preamble
+\date{}
+\end_preamble
+\use_default_options true
+\begin_modules
+endnotes
+logicalmkup
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman beraserif
+\font_sans berasans
+\font_typewriter beramono
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder true
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\listings_params "basicstyle={\scriptsize\ttfamily},breaklines=true,extendedchars=true,language={[Sharp]C},showspaces=false,showstringspaces=false,tabsize=4"
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Universal Configurator
+\end_layout
+
+\begin_layout Subtitle
+Application Settings, Configuration and command line handling for .Net and
+ Mono
+\end_layout
+
+\begin_layout Standard
+Handling options in .Net (and Mono) applications can be straightforward,
+ but it doesn't take much effort to push the requirements into complicated
+ handling and obscure conditions.
+ .Net has three main built-in configuration facilities for applications:
+\end_layout
+
+\begin_layout Enumerate
+The command line, represented as an array of strings in Main
+\end_layout
+
+\begin_layout Enumerate
+The Configuration system, comprising an army of classes
+\end_layout
+
+\begin_layout Enumerate
+The Windows Forms Settings facility, using generated code and a resource-like
+ designer
+\end_layout
+
+\begin_layout Standard
+These three ways are basically and fundamentally incompatible with each
+ other, and without assistance from some custom facility, require special
+ handling.
+\end_layout
+
+\begin_layout Standard
+The Universal Configurator attempts to rationalise the differing approaches,
+ and allow the programmer (that's you) to access settings in a simple way.
+ It also attempts to provide an extensible interface so that different and
+ future ways of handling application settings can be easily used.
+\end_layout
+
+\begin_layout Section
+Basic usage
+\end_layout
+
+\begin_layout Subsection
+A simple example
+\end_layout
+
+\begin_layout Standard
+Here's a simple example of it's use:
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "SimpleExample.cs"
+lstparams "caption={Simple configuration}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You might build it like this (MS vs2010 and Mono 2.10.5 respectively):
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+csc /r:uconf.dll SimpleExample.cs
+\end_layout
+
+\begin_layout Plain Layout
+
+dmcs -r:uconf.dll SimpleExample.cs
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that the data members of Config are never set in the usual way (it's
+ done using reflection), and so warnings are issued by the compiler to that
+ effect.
+\end_layout
+
+\begin_layout Standard
+To run it, provide some command-line parameters, like this:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+SimpleExample.exe --count=5 --message=Hi!
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+With the result:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+Hi!
+\end_layout
+
+\begin_layout Plain Layout
+
+Hi!
+\end_layout
+
+\begin_layout Plain Layout
+
+Hi!
+\end_layout
+
+\begin_layout Plain Layout
+
+Hi!
+\end_layout
+
+\begin_layout Plain Layout
+
+Hi!
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Some things to note:
+\end_layout
+
+\begin_layout Itemize
+Yes - they 
+\emph on
+are
+\emph default
+ public member variables.
+\end_layout
+
+\begin_layout Itemize
+The settings here come from the command line, but note that the type-safety
+ of the target class (Config) is preserved.
+\end_layout
+
+\begin_layout Itemize
+The command-line parameters match the names of the config objects data members,
+ but case is unIMPorTAnt.
+\end_layout
+
+\begin_layout Itemize
+Parameters passed on the command line have few restrictions, but are always
+ a key-value pair.
+ The following patterns are recognised:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Flex Code
+status collapsed
+
+\begin_layout Plain Layout
+-
+\begin_inset Phantom Phantom
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+-key=value
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Flex Code
+status collapsed
+
+\begin_layout Plain Layout
+-key:value
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Values with spaces can be enclosed in double-quotes
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Duplicated parameters are not allowed, and result in an ArgumentException.
+\end_layout
+
+\begin_layout Standard
+Try running without any parameters.
+ Think about that for a second.
+\end_layout
+
+\begin_layout Subsection
+Defaulted values
+\end_layout
+
+\begin_layout Standard
+Even though an instance of the Config type isn't explicitly created by you,
+ it is of course instantiated by the UniversalConfiguration object.
+ It therefore has its data members initialised to a sensible default - null
+ for reference types, and the equivalent of zero for value types
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+I know I know - over-simplification, but this is not a C# course
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+This implies that we should be able to provide our own sensible defaults
+ for the values, and this is indeed the case.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "DefaultValueExample.cs"
+lstparams "caption={Defaulted values}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Run this version with and without command line parameters.
+\end_layout
+
+\begin_layout Standard
+The same effect can be achieved by providing Config with a default constructor
+ that initialised the values.
+ Either way, it also has the side-effect of removing the previously mentioned
+ compiler warnings.
+\end_layout
+
+\begin_layout Subsection
+Alternate names
+\end_layout
+
+\begin_layout Standard
+As has already been mentioned, the command-line parameters need to match
+ the data member names (but not the case).
+ This is sometimes too restrictive, and you may require one or more alternate
+ names to be checked for the right value.
+\end_layout
+
+\begin_layout Standard
+Now we start exposing the reflection underlying the whole scheme.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "AltNamesExample.cs"
+lstparams "caption={Alternate names}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You could run this program in a number of ways, including:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+AltNamesExample.exe --count=5 --message=Hi!
+\end_layout
+
+\begin_layout Plain Layout
+
+AltNamesExample.exe -c:5 -M:Hi!
+\end_layout
+
+\begin_layout Plain Layout
+
+AltNamesExample.exe -number:5 --M=Hi!
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that using two or more forms of the same argument with alternate names
+ does 
+\emph on
+not
+\emph default
+ constitute a duplicate.
+ The following is valid, but might not do what you expect:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "extendedchars=true"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+AltNamesExample.exe --number=5 --message=Hi! --count=10
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The order that parameters are passed makes no difference to how they are
+ evaluated.
+ It is the order of names in the declaration list for the UniversalConfig
+ attribute that matters, with the name of the field at the lowest priority.
+ The basic sequence of evaluation is this:
+\end_layout
+
+\begin_layout Enumerate
+Look for a default value for the field, and use that
+\end_layout
+
+\begin_layout Enumerate
+Look for a value with the name of the field, and set it if found, overwriting
+ any previous value
+\end_layout
+
+\begin_layout Enumerate
+Look for each alternate name in turn 
+\emph on
+in the order they are declared
+\emph default
+, overwriting any previously found value
+\end_layout
+
+\begin_layout Standard
+Step 3 finishes when all alternate names have been checked, not as soon
+ as a matching value is found.
+\end_layout
+
+\begin_layout Subsection
+Application config files
+\end_layout
+
+\begin_layout Standard
+The main system of application configuration in .Net is the so-called 
+\begin_inset Quotes eld
+\end_inset
+
+app.config
+\begin_inset Quotes erd
+\end_inset
+
+ file, and the System.Configuration namespace.
+ Don't confuse this with the wizard-generated app.config and the Settings
+ class used - we'll cover that later.
+ This section is all about the Configuration class.
+\end_layout
+
+\begin_layout Standard
+Suppose that instead of passing values on the command line, you wished to
+ use an application settings file, such as this:
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "AppConfigExample.exe.config"
+lstparams "caption={A small config file}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You could parse the file manually into an array of strings and use the CmdLineHa
+ndler as previously, but fortunately there's no need.
+ Instead of using the CmdLineHandler, an AppConfigHandler is provided which
+ will pick up the appSettings from default locations.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "AppConfigExample.cs"
+lstparams "caption={Using application settings}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that all references to the command line have been removed, just in
+ case you weren't convinced...
+\end_layout
+
+\begin_layout Standard
+If you already have a Configuration object in your hand, as it were, it
+ can be passed into the AppConfigHandler object's constructor to use instead
+ of the defaults.
+\end_layout
+
+\begin_layout Standard
+The idea of alternate configuration sources and alternate names is all very
+ well, but becomes more interesting when mixing the two.
+\end_layout
+
+\begin_layout Section
+More advanced uses
+\end_layout
+
+\begin_layout Standard
+Being able to merge options from multiple sources is where all the real
+ excitement is.
+ The .Net Configuration system does this, merging settings from a machine
+ file, an application file, plus local and roaming user specific settings.
+\end_layout
+
+\begin_layout Standard
+The UniversalConfigurator takes a different - and more flexible approach.
+\end_layout
+
+\begin_layout Subsection
+Multiple handlers
+\end_layout
+
+\begin_layout Standard
+By specifying multiple handlers for different settings, they are automatically
+ merged.
+ As with alternate names, the order is important, and so sources specified
+ later trump earlier ones if there is a conflict.
+\end_layout
+
+\begin_layout Standard
+An example should help:
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "MixedConfigsExample.cs"
+lstparams "caption={Multiple sources}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The config file for this is identical to the previous one.
+ A new handler has been introduced into this configuration - the SystemEnvironme
+ntHandler, from which the new field 
+\begin_inset Quotes eld
+\end_inset
+
+Path
+\begin_inset Quotes erd
+\end_inset
+
+ in the Config object will be picked up if another is not provided.
+\end_layout
+
+\begin_layout Standard
+Note also that the Config object has alternate names for some of the options.
+ This allows you to cover the case when a setting may be in one (or more)
+ of several places, each having a different name.
+ It's not unreasonable for the command line to allow short options like
+ 
+\begin_inset Quotes eld
+\end_inset
+
+-c:5
+\begin_inset Quotes erd
+\end_inset
+
+ whilst a config file uses longer versions to mean the same thing, as here.
+\end_layout
+
+\begin_layout Standard
+Try running this without any command line parameters, and then adding parameters
+ to change the options to see how settings passed on the command line take
+ priority (actually, they overwrite) options in the config.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+MixedConfigsExample.exe
+\end_layout
+
+\begin_layout Plain Layout
+
+MixedConfigsExample.exe -M:"Hello from the prompt"
+\end_layout
+
+\begin_layout Plain Layout
+
+MixedConfigsExample.exe --count=2
+\end_layout
+
+\begin_layout Plain Layout
+
+MixedConfigsExample.exe --path=.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Bootstrap model
+\end_layout
+
+\begin_layout Standard
+So far all configuration has been provided directly in easily available
+ or discoverable places - the command line, a configuration file in a well
+ known place, the system environment.
+ Large applications might have settings in other places that, in order to
+ be loaded, themselves require configuration, for example a table in a database,
+ or a configuration file on a share requiring logon credentials.
+\end_layout
+
+\begin_layout Standard
+Under these circumstances it's necessary to have a separate 
+\begin_inset Quotes eld
+\end_inset
+
+bootstrap
+\begin_inset Quotes erd
+\end_inset
+
+ configuration that can load settings from a well known place in order to
+ configure the other locations so their settings can be loaded.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "DerivedHandler.cs"
+lstparams "caption={A Custom Handler}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This example shows how to create your own handler that can be used with
+ the UniversalConfiguration.
+ The new handler requires some settings to be passed into its constructor,
+ and these are available from other settings.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset include
+LatexCommand lstinputlisting
+filename "SettingsForSettings.cs"
+lstparams "caption={Settings for Settings}"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Of course, instead of manually setting an array of strings, these 
+\begin_inset Quotes eld
+\end_inset
+
+bootstrap
+\begin_inset Quotes erd
+\end_inset
+
+ settings might be taken from the environment or command line.
+ The example also shows that the same handler (in this case, the CmdLineHandler)
+ can be re-used easily in more than one case.
+\end_layout
+
+\end_body
+\end_document
